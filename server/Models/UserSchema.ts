@@ -8,6 +8,8 @@ export interface IUser extends Document {
     email: string;
     password: string;
     comparePassword(enteredPassword: string): Promise<boolean>;// Method to compare passwords
+    isVerified: boolean; 
+    verifyToken?: string; 
 }
 const userSchema=new Schema<IUser>({
     name:{
@@ -26,7 +28,15 @@ const userSchema=new Schema<IUser>({
             if (!validator.isEmail(value)) {
                 throw new Error('Invalid email format');
             }
-        }
+        },
+
+    },
+    isVerified: {
+        type: Boolean,
+        default: false, // Default value for verification status
+    },
+    verifyToken: {
+        type: String//temporary token for email verification
     },
     password: {
         type: String,
