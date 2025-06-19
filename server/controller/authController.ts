@@ -1,7 +1,9 @@
 import User from '../Models/UserSchema';
 import { Request, Response } from 'express';
-import { generateToken } from '../utils/generateToken';
+import { generateToken} from '../utils/generateToken';
+import {generateRefreshToken} from '../utils/generateRefreshToken'
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export const signUpUser=async(req: Request, res: Response): Promise<void> => {
     const { name, email, password } = req.body;
@@ -22,23 +24,24 @@ export const signUpUser=async(req: Request, res: Response): Promise<void> => {
         // Save the new user to the database
         await newUser.save();
         // Generate a token for the user
-        const token = await generateToken(newUser._id.toString());
-        //Set token in HTTP-only cookie
-        res.cookie('token', token, {// Set the cookie with the token
-        httpOnly: true,// Prevents JavaScript access to the cookie
-        secure: process.env.NODE_ENV === 'production',// Use secure cookies in production
-        sameSite: 'strict',// Helps prevent CSRF attacks
-        maxAge: 24 * 60 * 60 * 1000, // Cookie expiration time (1 day)
+    const accessToken = await generateToken(newUser._id.toString());// Generate an access token for the user
+    const refreshToken = await generateRefreshToken(newUser._id.toString());// Generate a refresh token for the user        //Set token in HTTP-only cookie
+        
+     res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
         // Respond with the user data and token
-        res.status(201).json({
+    res.status(201).json({
             message: 'User created successfully',
             user: {
                 id: newUser._id,
                 name: newUser.name,
                 email: newUser.email,
             },
-            token,        });
+            accessToken,        });
         return;       
     } catch (error) {
         console.error('Error signing up user:', error);
@@ -67,9 +70,10 @@ export const loginUser=async (req: Request, res: Response): Promise<void> => {
       res.status(401).json({ message: 'Invalid credentials' });
     }
     // Generate a token for the user
-    const token = await generateToken(user._id.toString());
-    // Set token in HTTP-only cookie
-    res.cookie('token', token, {
+    const accessToken = await generateToken(user._id.toString());// Generate an access token for the user
+    const refreshToken = await generateRefreshToken(user._id.toString());// Generate a refresh token for the user
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
         httpOnly: true, // Prevents JavaScript access to the cookie
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: 'strict', // Helps prevent CSRF attacks
@@ -83,7 +87,7 @@ export const loginUser=async (req: Request, res: Response): Promise<void> => {
             name: user.name,
             email: user.email,
         },
-        token,
+        accessToken,
     });
 }catch (error) {
     console.error('Error logging in user:', error);
@@ -96,7 +100,7 @@ export const loginUser=async (req: Request, res: Response): Promise<void> => {
 //logout user
 export const logoutUser = async (req: Request, res: Response) => {
   try {
-    res.cookie('token', '', {// Clear the token cookie
+    res.cookie('refreshToken', '', {// Clear the token cookie
       httpOnly: true,
       expires: new Date(0), // Immediately expires the cookie
     });
@@ -106,3 +110,5 @@ export const logoutUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Logout failed' });
   }
 };
+
+
