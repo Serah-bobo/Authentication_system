@@ -1,6 +1,7 @@
 import { signUpUser,loginUser,logoutUser } from "../controller/authController";
 import {refreshAccessToken} from '../controller/refreshTokenController'
 import { verifyEmail } from "../controller/authController";
+import {verify2FA} from '../controller/authController'
 import { Router } from "express";
 const router = Router();
 //register new user
@@ -13,4 +14,6 @@ router.post("/logout", logoutUser);
 router.get("/refresh", refreshAccessToken);
 //verify email
 router.get("/verify-email/:token", verifyEmail);
+//verify 2FA
+router.post("/verify-2fa", verify2FA);
 export default router;

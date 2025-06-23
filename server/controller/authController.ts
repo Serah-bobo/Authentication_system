@@ -5,6 +5,7 @@ import {generateRefreshToken} from '../utils/generateRefreshToken'
 import bcrypt from 'bcrypt';
 import {sendEmail} from '../utils/sendEmail'
 import {generateEmailToken} from '../utils/generateEmailToken'
+import {generateOtp} from '../utils/generateOtp'
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 dotenv.config();
@@ -107,26 +108,34 @@ export const loginUser=async (req: Request, res: Response): Promise<void> => {
     if (!isMatch) {
       res.status(401).json({ message: 'Invalid credentials' });
     }
-    // Generate a token for the user
-    const accessToken = await generateToken(user._id.toString());// Generate an access token for the user
-    const refreshToken = await generateRefreshToken(user._id.toString());// Generate a refresh token for the user
-    // Set refresh token in HTTP-only cookie
-    res.cookie('refreshToken', refreshToken, {
-        httpOnly: true, // Prevents JavaScript access to the cookie
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        sameSite: 'strict', // Helps prevent CSRF attacks
-        maxAge: 24 * 60 * 60 * 1000, // Cookie expiration time (1 day)
+    // If the password matches, proceed with login using otp
+    const otpCode = generateOtp(); // Generate a 6-digit OTP
+    user.otpCode = otpCode; // Store the OTP in the user document
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // Set OTP expiration time (10 minutes)
+    await user.save(); // Save the updated user document to the database
+    // Send the OTP to the user's email
+  const html = `
+  <h2>Hello, ${user.name}</h2>
+  <p>Your 2FA verification code is: <strong>${otpCode}</strong></p>
+  <p>It expires in 10 minutes.</p>
+`;  
+// Send the OTP email
+    await sendEmail({
+        to: user.email,
+        subject: 'Your 2FA Verification Code',
+        html,
     });
-    // Respond with the user data and token
+    // Respond with a message indicating that the OTP has been sent
     res.status(200).json({
-        message: 'Login successful',
+        message: 'OTP sent to your email. Please enter the OTP to complete login.',
         user: {
             id: user._id,
             name: user.name,
             email: user.email,
         },
-        accessToken,
     });
+
+    
 }catch (error) {
     console.error('Error logging in user:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -135,19 +144,7 @@ export const loginUser=async (req: Request, res: Response): Promise<void> => {
    
 }
 
-//logout user
-export const logoutUser = async (req: Request, res: Response) => {
-  try {
-    res.cookie('refreshToken', '', {// Clear the token cookie
-      httpOnly: true,
-      expires: new Date(0), // Immediately expires the cookie
-    });
 
-    res.status(200).json({ message: 'Logged out successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Logout failed' });
-  }
-};
 
 
 //verify email
@@ -185,3 +182,60 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
         res.status(400).json({ message: 'invalid or expired token' });
     }
 }
+
+//verify otp
+export const verify2FA = async (req: Request, res: Response): Promise<void> => {
+  const { userId, code } = req.body;
+  const user = await User.findById(userId);
+
+  if (!user || !user.otpCode || !user.otpExpires) {
+    res.status(400).json({ message: 'Invalid or expired OTP.' });
+    return;
+  }
+
+  if (user.otpCode !== code || user.otpExpires < new Date()) {
+    res.status(401).json({ message: 'Incorrect or expired code.' });
+    return;
+  }
+
+  user.otpCode = undefined;
+  user.otpExpires = undefined;
+  await user.save();
+// Generate a token for the user
+    const accessToken = await generateToken(user._id.toString());// Generate an access token for the user
+    const refreshToken = await generateRefreshToken(user._id.toString());// Generate a refresh token for the user
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true, // Prevents JavaScript access to the cookie
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        sameSite: 'strict', // Helps prevent CSRF attacks
+        maxAge: 24 * 60 * 60 * 1000, // Cookie expiration time (1 day)
+    });
+    // Respond with the user data and token
+    res.status(200).json({
+        message: 'Login successful',
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+        },
+        accessToken,
+    });
+  
+  
+};
+
+
+//logout user
+export const logoutUser = async (req: Request, res: Response) => {
+  try {
+    res.cookie('refreshToken', '', {// Clear the token cookie
+      httpOnly: true,
+      expires: new Date(0), // Immediately expires the cookie
+    });
+
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Logout failed' });
+  }
+};
