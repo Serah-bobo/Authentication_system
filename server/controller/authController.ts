@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { generateToken} from '../utils/generateToken';
 import {generateRefreshToken} from '../utils/generateRefreshToken'
 import bcrypt from 'bcrypt';
+import {generateResetToken} from '../utils/generateResetToken'
 import {sendEmail} from '../utils/sendEmail'
 import {generateEmailToken} from '../utils/generateEmailToken'
 import {generateOtp} from '../utils/generateOtp'
@@ -239,3 +240,96 @@ export const logoutUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Logout failed' });
   }
 };
+
+
+//forgot password
+export const forgotPassword = async (req: Request, res: Response): Promise<void> =>{
+  const {email}=req.body;
+  if (!email) {
+    res.status(400).json({ message: 'Please provide an email address' });
+    return;
+  }
+  // Find the user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    res.status(400).json({ message: 'User not found' });
+    return;
+  }
+  // Generate a password reset token
+  const resetToken = await generateResetToken(user._id.toString());
+  console.log('RESET TOKEN:', resetToken);
+  // Set the reset token and its expiration time
+  user.resetToken = resetToken;
+  user.resetTokenExpires = new Date(Date.now() + 15 * 60 * 1000); // Token valid for 15 minutes
+  await user.save(); // Save the updated user document to the database
+  // Construct the password reset link
+  const resetLink = `${process.env.PASSWORD_RESET_URL}/${resetToken}`; // Use the environment variable for the reset URL
+  console.log('RESET LINK:', process.env.PASSWORD_RESET_URL);
+  // Email content
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+      <h2>Password Reset Request</h2>
+      <p>Hi ${user.name},</p>
+      <p>We received a request to reset your password. Click the button below to reset it:</p>
+      <p>
+        <a href="${resetLink}" 
+           style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+          Reset Password
+        </a>
+      </p>
+      <p>If the button above doesn't work, you can also copy and paste this link into your browser:</p>
+      <p style="word-break: break-word;">${resetLink}</p>
+      <hr />
+      <small>This link will expire in 15 minutes.</small>
+    </div>
+  `;
+  // Send the password reset email
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: 'Password Reset Request',
+      html,
+    });
+    res.status(200).json({ message: 'Password reset email sent successfully' });
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    res.status(500).json({ message: 'Failed to send password reset email' });
+  }
+}
+
+//reset password
+export const resetPassword = async (req: Request, res: Response): Promise<void> =>{
+  const {token}=req.params; // Get the token from the request parameters
+  const {newPassword}=req.body; // Get the new password from the request body
+  const jwt_reset_secret = process.env.RESET_TOKEN_SECRET; // Get the secret from environment variables
+  // Check if the token is provided
+  if (!token) {
+    res.status(400).json({ message: 'Token is required' });
+    return;
+  }
+  try{
+    const decoded = jwt.verify(token, jwt_reset_secret!) as { id: string }; // Decode the token to get the user ID
+    // Find the user by the reset token
+    const user = await User.findById(decoded.id);
+    if (
+      !user||
+      user.resetToken !== token ||
+      user.resetTokenExpires! < new Date() // Check if the token is valid and not expired
+
+    ) {
+      res.status(400).json({ message: 'Invalid or expired reset token' });
+      return;
+    }
+    // Update the user's password
+    user.password = newPassword; // Set the new password
+    user.resetToken = undefined; // Clear the reset token
+    user.resetTokenExpires = undefined; // Clear the reset token expiration
+    await user.save(); // Save the updated user to the database
+    res.status(200).json({ message: 'Password reset successfully' });
+    
+  }catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Internal server error' });
+    return;
+  }
+}

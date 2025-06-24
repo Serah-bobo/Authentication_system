@@ -13,6 +13,8 @@ export interface IUser extends Document {
   verifyToken?: string;
   otpCode?: string;
   otpExpires?: Date;
+  resetToken?: string;
+  resetTokenExpires?: Date;
 }
 
 const userSchema = new Schema<IUser>(
@@ -42,6 +44,9 @@ const userSchema = new Schema<IUser>(
     verifyToken: String,
     otpCode: String,
     otpExpires: Date,
+    resetToken: { type: String },
+    resetTokenExpires: { type: Date },
+
     password: {
       type: String,
       required: [true, 'Please provide a password'],
