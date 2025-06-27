@@ -147,42 +147,38 @@ export const loginUser=async (req: Request, res: Response): Promise<void> => {
 
 
 
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+  const { token } = req.params;
+  const jwt_email_secret = process.env.JWT_EMAIL_SECRET;
+  const clientURL = process.env.CLIENT_URL; // Frontend base URL
 
-//verify email
-export const verifyEmail = async (req: Request, res: Response): Promise<void> =>{
-    const { token } = req.params; // Get the token from the request parameters
-     const jwt_email_secret = process.env.JWT_EMAIL_SECRET; // Get the secret from environment variables
+  if (!token || !jwt_email_secret || !clientURL) {
+    res.status(400).json({ message: 'Invalid server configuration or missing token.' });
+    return;
+  }
 
-    // Check if the token is provided
-    if (!token) {
-        res.status(400).json({ message: 'user not found' });
-        return;
+  try {
+    const decoded = jwt.verify(token, jwt_email_secret) as { id: string };
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.redirect(`${clientURL}/verify-failed`);
     }
-    
-    try {
-        //verify token
-        const decoded = jwt.verify(token, jwt_email_secret!) as { id: string }; // Decode the token to get the user ID
-        // Find the user by the verification token
-        const user = await User.findById(decoded.id);
-        if (!user) {
-            res.status(400).json({ message: 'Invalid or expired verification token' });
-            return;
-        }
-        // Check if the user is already verified
-        if (user.isVerified) {
-            res.status(400).json({ message: 'Email is already verified' });
-            return;
-        }
-        // Update the user's verification status
-        user.isVerified = true;
-        user.verifyToken = ''; // Clear the verification token
-        await user.save(); // Save the updated user to the database
-        res.status(200).json({ message: 'Email verified successfully' });
-    } catch (error) {
-        console.error('Error verifying email:', error);
-        res.status(400).json({ message: 'invalid or expired token' });
+
+    if (user.isVerified) {
+      return res.redirect(`${clientURL}/verify-success`); // Already verified is still success
     }
-}
+
+    user.isVerified = true;
+    user.verifyToken = '';
+    await user.save();
+
+    return res.redirect(`${clientURL}/verify-success`);
+  } catch (error) {
+    console.error('Error verifying email:', error);
+    return res.redirect(`${clientURL}/verify-failed`);
+  }
+};
 
 //verify otp
 export const verify2FA = async (req: Request, res: Response): Promise<void> => {

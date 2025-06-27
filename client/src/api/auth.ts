@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {registerSchemaType} from '../schemas/registerSchema'
-
-const API_URL = "http://localhost:5000/api/auth";
+import { LoginSchemaType } from '../schemas/LoginSchema';
+;const API_URL = "http://localhost:5000/api/auth";
 
 export const useRegister= () => {
     return useMutation({
@@ -19,6 +19,26 @@ export const useRegister= () => {
             } )
             const resData= await response.json();
             if(!response.ok){
+                throw new Error(resData.message || 'Something went wrong');
+            }
+            return resData;
+        }
+    })
+}
+
+export const useLogin = () => {
+    return useMutation({
+        mutationFn: async (data: LoginSchemaType) => {
+            const response = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+            const resData = await response.json();
+            if (!response.ok) {
                 throw new Error(resData.message || 'Something went wrong');
             }
             return resData;
