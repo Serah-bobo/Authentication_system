@@ -2,7 +2,9 @@ import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route } 
 import { RegisterUser } from "features/Register";
 import { LoginUser } from "features/Login";
 import EmailVerified from './pages/EmailVerified'; // ✅ Import the new page
-
+import VerifyFailed from './pages/VerifyFailed'; // ✅ Import the VerifyFailed page
+import { VerifyOtp } from "pages/VerifyOtp"; // ✅ Import the VerifyOtp page
+import {Home} from 'pages/Home'
 const App = () => {
   const router = createBrowserRouter(
     createRoutesFromElements(
@@ -10,6 +12,9 @@ const App = () => {
         <Route path="/" element={<RegisterUser />} />
         <Route path="/login" element={<LoginUser />} />
         <Route path="/verify-success" element={<EmailVerified />} /> {/* ✅ New route */}
+        <Route path="/verify-failed" element={<VerifyFailed />} /> {/* ✅ New route for verification failure */}
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/dashboard" element={<Home />} />
       </>
     )
   );

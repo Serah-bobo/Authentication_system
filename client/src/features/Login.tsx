@@ -23,7 +23,7 @@ export const LoginUser = () => {
   const onSubmit = async (data: LoginSchemaType) => {
     try {
       await mutateAsync(data);
-      navigate('/dashboard'); // Redirect to dashboard or home page after successful login
+      navigate('/verify-otp');
     } catch (err) {
       // Handled by error state
     }
@@ -100,7 +100,7 @@ export const LoginUser = () => {
             </button>
             <p className="mt-4 text-sm text-center text-gray-600">
               Don't have an account?{" "}
-              <Link to="/register" className="text-blue-600 hover:underline">
+              <Link to="/" className="text-blue-600 hover:underline">
                 Register
               </Link>
             </p>

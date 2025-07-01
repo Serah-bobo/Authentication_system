@@ -1,6 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 import {registerSchemaType} from '../schemas/registerSchema'
 import { LoginSchemaType } from '../schemas/LoginSchema';
+import { VerifyOtpSchemaType } from '../schemas/OtpSchema';
+
 ;const API_URL = "http://localhost:5000/api/auth";
 
 export const useRegister= () => {
@@ -45,3 +47,25 @@ export const useLogin = () => {
         }
     })
 }
+
+//verify otp
+export const useVerifyOtp = () => {
+  return useMutation({
+    mutationFn: async (data: VerifyOtpSchemaType) => {
+      const res = await fetch(`${API_URL}/verify-2fa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // So cookies work with HTTP-only
+        body: JSON.stringify(data),
+      });
+
+      const resData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(resData.message || "Failed to verify OTP");
+      }
+
+      return resData;
+    },
+  });
+};
