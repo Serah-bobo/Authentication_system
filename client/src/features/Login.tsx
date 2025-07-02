@@ -88,6 +88,11 @@ export const LoginUser = () => {
             {errors.password && (
               <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
             )}
+            <div className="mt-2 text-right">
+    <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+      Forgot Password?
+    </Link>
+  </div>
             </div>
             <button
               type="submit"

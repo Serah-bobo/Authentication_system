@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {registerSchemaType} from '../schemas/registerSchema'
 import { LoginSchemaType } from '../schemas/LoginSchema';
 import { VerifyOtpSchemaType } from '../schemas/OtpSchema';
-
+import { ForgotPasswordSchemaType } from '../schemas/forgotPasswordSchema';
 ;const API_URL = "http://localhost:5000/api/auth";
 
 export const useRegister= () => {
@@ -66,6 +66,47 @@ export const useVerifyOtp = () => {
       }
 
       return resData;
+    },
+  });
+};
+
+//forgot password
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: async (data: ForgotPasswordSchemaType) => {
+      const res = await fetch(`${API_URL}/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+
+      const resData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(resData.message || "Failed to send reset email");
+      }
+
+      return resData;
+    },
+  });
+};
+
+//reset password
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: async ({ token, password }: { token: string; password: string }) => {
+      const res = await fetch(`${API_URL}/reset-password/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newPassword:password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to reset password");
+
+      return data;
     },
   });
 };

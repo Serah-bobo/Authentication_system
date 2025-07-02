@@ -5,6 +5,8 @@ import EmailVerified from './pages/EmailVerified'; // ✅ Import the new page
 import VerifyFailed from './pages/VerifyFailed'; // ✅ Import the VerifyFailed page
 import { VerifyOtp } from "pages/VerifyOtp"; // ✅ Import the VerifyOtp page
 import {Home} from 'pages/Home'
+import { ForgotPassword } from "pages/ForgotPassword";
+import { ResetPassword } from "pages/ResetPassword";
 const App = () => {
   const router = createBrowserRouter(
     createRoutesFromElements(
@@ -15,6 +17,8 @@ const App = () => {
         <Route path="/verify-failed" element={<VerifyFailed />} /> {/* ✅ New route for verification failure */}
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/dashboard" element={<Home />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </>
     )
   );
