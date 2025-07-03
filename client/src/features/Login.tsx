@@ -6,9 +6,11 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 
+
 export const LoginUser = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
 
   const {
     register,
@@ -20,14 +22,21 @@ export const LoginUser = () => {
 
   const { mutateAsync, isPending, error } = useLogin();
 
-  const onSubmit = async (data: LoginSchemaType) => {
-    try {
-      await mutateAsync(data);
-      navigate('/verify-otp');
-    } catch (err) {
-      // Handled by error state
-    }
-  };
+const onSubmit = async (data: LoginSchemaType) => {
+  try {
+    const res = await mutateAsync(data); // <- this is the response from backend
+
+    // assuming your backend sends: { user: { id: '...' }, ... }
+    localStorage.setItem("userId", res.user.id);
+
+    navigate('/verify-otp', {
+      state: { message: 'Login successful. Please enter the OTP sent to your email.' }
+    });
+  } catch (err) {
+    // Handled by error state
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-100">

@@ -29,7 +29,7 @@ export const RegisterUser = () => {
       reset();
       setTimeout(()=>{
         navigate('/login')
-      })
+      },3000)
     } catch (err) {
       // Handled by error state
     }

@@ -52,14 +52,23 @@ export const useLogin = () => {
 export const useVerifyOtp = () => {
   return useMutation({
     mutationFn: async (data: VerifyOtpSchemaType) => {
+      console.log("Sending payload to server:", data);
+
       const res = await fetch(`${API_URL}/verify-2fa`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include", // So cookies work with HTTP-only
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          userId: localStorage.getItem("userId"), // 🔷 send userId from localStorage
+          code: data.code, // 🔷 send as `code`
+        }),
+        
       });
 
       const resData = await res.json();
+console.log("Response status", res.status);
 
       if (!res.ok) {
         throw new Error(resData.message || "Failed to verify OTP");
@@ -69,6 +78,7 @@ export const useVerifyOtp = () => {
     },
   });
 };
+
 
 //forgot password
 export const useForgotPassword = () => {
