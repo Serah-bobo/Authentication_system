@@ -37,10 +37,9 @@ export const VerifyOtp = () => {
     console.log("Submitting OTP form:", { ...data, userId });
 
     mutate(
-      { ...data, userId }, // attach userId outside the schema
+      { ...data, userId } as any, // attach userId outside the schema and cast to any to avoid type error
       {
         onSuccess: () => {
-          localStorage.removeItem("userId");
           navigate("/dashboard");
         },
       }
